@@ -1,0 +1,64 @@
+Activo,Categoría de Activo,Descripción de Negocio,Fórmula / Lógica
+FitLife,Business Term,Nombre comercial de la cadena de gimnasios compuesta por 5 centros urbanos,
+Miembro (Socio),Business Term,Persona física que posee un contrato de servicios con FitLife y cuenta con un identificador único,
+Gimnasio (Centro),Business Term,Instalación física de la cadena donde se prestan los servicios deportivos,
+Incidencia de Servicio,Business Term,Evento operativo adverso que interrumpe la experiencia normal del miembro en las instalaciones,
+Suscripción (Plan),Business Term,"Modelo de contrato que define el nivel de acceso y servicios adicionales (entrenador, clases)",
+Plan Premium,Business Term,Nivel de suscripción más alto y más frecuente en la cartera de miembros,
+Baja (Churn),Business Term,Terminación de la relación contractual por decisión del miembro o fin de vigencia,
+Alta (Sigup),Business Term,Acto formal de registro e inicio de facturación de un nuevo miembro,
+Fidelización,Business Term,Estrategia orientada a mantener al miembro activo y con niveles altos de satisfacción,
+Canal de Captación,Business Term,Medio de marketing o comercial por el cual el cliente llega a FitLife,
+Upselling,Business Term,Estrategia de mover a un miembro de un plan básico a uno superior o añadir servicios extra,
+Engagement,Business Term,Nivel de interacción y uso que el miembro hace de los activos del gimnasio,
+member_id,Column,Identificador único de miembro,
+month / year / quarter,Column,Mes del registro en formato YYYY-MM,
+center,Column,"Gimnasio físico (downtown, northside, eastpark, westfield, southgate) donde el miembro realiza su actividad",
+plan,Column,"Plan de suscripción contratado (basic, premium, family) por el miembro",
+price_paid,Column,Precio pagado por el miembro tras descuentos,
+discount_applied,Column,Porcentaje de descuento aplicado aplicado sobre la tarifa base,
+signup_date,Column,Fecha de registro inicial del miembro en la cadena en formato YYYY-MM-DD,
+acquisition_channel,Column,"Canal de captación (website, walk_in, corporate, referral, january_campaign) del miembro",
+age,Column,Edad del miembro,
+gender,Column,Género del miembro,
+tenure_months,Column,Tiempo como miembro expresado en meses,
+visits_this_month,Column,Número de asistencias física al centro en el mes,
+group_classes_attended,Column,Volumen de clases grupales consumidas,
+uses_app,Column,Flag de uso de aplicación móvil,
+has_personal_trainer,Column,Flag de contratación de servicio de entrenador personal,
+support_contacts,Column,Interacciones con el equipo de soporte técnico/atención al cliente,
+incidents_reported,Column,Quejas o incidencias específicas reportadas por el miembro,
+satisfaction_survey,Column,Puntaje subjetiva (1-10) de la experiencia del miembro,
+status,Column,"Estado del contrato (active, churned)",
+churn_reason,Column,Motivo de la cancelación del servicio,
+competitor_lowcost_price,Column,Precio de referencia del principal rival de bajo coste,
+campaign_active,Column,Campaña de marketing vigente en el mes,
+service_incident,Column,Fallos operativos ocurridos en los centros que afectan el servicio,
+Miembros Totales,Metric,Volumen total de miembros únicos registrados,COUNT(DISTINCT member_id)
+Cancelaciones,Metric,Total de miembros que han dado de baja su suscripción,COUNT(member_id) WHERE status == 'churned'
+Tasa de Cancelación,Metric,Proporción de bajas sobre el total de miembros,(Cancelaciones / Miembros Totales) * 100
+Nuevos Miembros,Metric,Cantidad de miembros que están en su primer mes de suscripción,COUNT(member_id) WHERE tenure_months == 1
+Miembros Activos,Metric,Cantidad de miembros con contrato vigente,COUNT(member_id) WHERE status == 'active'
+Ingresos (Revenue),Metric,Suma total de los pagos recibidos en el periodo,SUM(price_paid)
+ARPU,Metric,Ingreso promedio por miembro único,Ingresos / Miembros Totales
+CLV (Vida Media),Metric,Promedio de meses de permanencia de los miembros,AVG(tenure_months)
+LTV,Metric,Valor monetario proyectado del ciclo de vida del miembro,ARPU * CLV
+NPS,Metric,Índice neto de satisfacción y lealtad,((Promotores - Detractores) / Total Respuestas) * 100
+Valor de Visita,Metric,Ingreso generado proporcionalmente por cada visita a las instalaciones,Total Revenue / SUM(visits_this_month)
+Visitas por Miembro,Metric,Frecuencia promedio de uso de las instalaciones,SUM(visits_this_month) / Miembros Totales
+Incidencias por Miembro,Metric,Promedio de quejas o fallas reportadas por usuario,SUM(incidents_reported) / Miembros Totales
+Captación por Campañas,Metric,Porcentaje de nuevos miembros atraídos por una campaña activa,(Nuevos con Campaña / Total Nuevos) * 100
+Nuevos Miembros con Campaña,Metric,Miembros nuevos captados específicamente a través de una promoción activa,COUNT(member_id) WHERE tenure_months == 1 AND campaign_active IS NOT NULL
+Gap de Precio,Metric,Diferencia de precio del Plan Básico frente al competidor Low-Cost,AVG(price_paid [Basic] - competitor_lowcost_price)
+Sensibilidad al Precio (Eslasticidad de Precio),Metric,Elasticidad que mide la variación de miembros activos frente a cambios en el precio promedio,Delta Miembros Activos (%) / Delta Precio Promedio (%)
+Miembros en Riesgo,Metric,Porcentaje de miembros activos con baja asistencia (<= 5 visitas),(DISTINCT member_id WHERE visits_this_month <= 5 / Miembros Activos) * 100
+Ventana de Evaluación Trimestral,Business Rule,"Define que el cálculo de KPIs estratégicos no es histórico, sino basado en el desempeño del último trimestre cerrado para reflejar la realidad actual del negocio",month dentro de los últimos 3 meses del dataset
+Segmentación: Promotor,Business Rule,Miembro con alta lealtad y probabilidad de recomendación,satisfaction_survey >= 9
+Segmentación: Detractor,Business Rule, Miembro insatisfecho con riesgo de cancelación y generar imagen negativa,satisfaction_survey <= 6
+Segmentación: Neutro,Business Rule,Miembro satisfecho pero con riesgo de migrar a la competencia por precio,"satisfaction_survey IN (7, 8)"
+Umbral de Riesgo por Abandono,Business Rule,"Identificación preventiva de miembros con baja vinculación física, con alta probabilidad de baja",visits_this_month <= 5 y status == 'active'
+"Criterio de ""Miembro Zombie""",Business Rule,Identificación de socios que pagan pero tienen uso nulo absoluto (riesgo extremo),status == 'active' AND visits_this_month == 0
+Atribución de Campaña,Business Rule,Criterio para asignar el éxito de una alta a los esfuerzos de marketing,tenure_months == 1 AND campaign_active IS NOT NULL
+Regla de Upselling (PT),Business Rule,Indica el éxito en la venta de servicios de valor añadido sobre la cuota base,has_personal_trainer == True
+Adopción Digital,Business Rule,Criterio para evaluar la digitalización de la comunidad FitLife,uses_app == True
+Presión de Competencia,Business Rule,Alerta de mercado cuando el diferencial de precio supera el umbral crítico,price_paid [Basic] > competitor_lowcost_price
